@@ -1,0 +1,30 @@
+---
+- hosts: all
+
+  tasks:
+    - name: Stop old container
+      shell: docker container rm -f efficiency-app-{{image_tag}}
+      ignore_errors: yes
+
+    - name: Pulling newer image
+      shell: docker pull ghcr.io/useefficiency/efficiency-app:{{image_tag}}
+
+    - name: Deploy the app
+      shell: |
+        docker run --name efficiency-app-{{ image_tag }} --network nat-network --restart unless-stopped -d \
+          -e NEXT_PUBLIC_SUPABASE_ANON_KEY="{{ supabase_anon_key }}" \
+          -e SUPABASE_URL="{{ supabase_url }}" \
+          -e NEXT_PUBLIC_SUPABASE_URL="{{ public_supabase_url }}" \
+          -e SUPABASE_SERVICE_ROLE_KEY="{{ supabase_service_role_key }}" \
+          -e NEXT_PUBLIC_SITE_URL="{{ site_url }}" \
+          -e GOOGLE_CLIENT_ID="{{ google_client_id }}" \
+          -e GOOGLE_CLIENT_SECRET="{{ google_client_secret }}" \
+          -e NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL="{{ dev_supabase_redirect_url }}" \
+          -l traefik.enable=true \
+          -l traefik.http.routers.efficiency-app-{{ image_tag }}.entrypoints=websecure \
+          -l traefik.http.routers.efficiency-app-{{ image_tag }}.rule='Host(`{{ domain_name }}`)' \
+          -l traefik.http.routers.efficiency-app-{{ image_tag }}.tls.certResolver=letsencrypt \
+          ghcr.io/useefficiency/efficiency-app:{{image_tag}}
+
+    - name: Remove all unwanted images
+      shell: docker system prune -fa

@@ -1,0 +1,177 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - dev-preview-branch
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt update > /dev/null
+          sudo apt install -y qemu-user-static > /dev/null
+
+      - name: Image Tag
+        id: image-tag
+        shell: bash
+        run: |
+          case "${{ github.ref }}" in
+            "refs/heads/main")
+              echo "name=prod" >> $GITHUB_OUTPUT
+            ;;
+            "refs/heads/dev-preview-branch")
+              echo "name=dev" >> $GITHUB_OUTPUT
+            ;;
+          esac
+
+      - name: Vars
+        id: vars
+        shell: bash
+        run: |
+          case "${{ github.ref }}" in
+            "refs/heads/main")
+              echo "supabase_anon_key=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> $GITHUB_OUTPUT
+              echo "supabase_url=${{ secrets.SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "public_supabase_url=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "supabase_service_role_key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_OUTPUT
+              echo "google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_OUTPUT
+              echo "google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
+              echo "dev_supabase_redirect_url=${{ secrets.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL }}" >> $GITHUB_OUTPUT
+              echo "site_url=${{ secrets.NEXT_PUBLIC_SITE_URL }}" >> $GITHUB_OUTPUT
+             ;;
+            "refs/heads/dev-preview-branch")
+              echo "supabase_anon_key=${{ secrets.DEV_NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> $GITHUB_OUTPUT
+              echo "supabase_url=${{ secrets.DEV_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "public_supabase_url=${{ secrets.DEV_NEXT_PUBLIC_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "supabase_service_role_key=${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_OUTPUT
+              echo "google_client_id=${{ secrets.DEV_GOOGLE_CLIENT_ID }}" >> $GITHUB_OUTPUT
+              echo "google_client_secret=${{ secrets.DEV_GOOGLE_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
+              echo "dev_supabase_redirect_url=${{ secrets.DEV_NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL }}" >> $GITHUB_OUTPUT
+              echo "site_url=${{ secrets.DEV_NEXT_PUBLIC_SITE_URL }}" >> $GITHUB_OUTPUT
+            ;;
+          esac
+
+      - name: Build Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: efficiency-app
+          tags: ${{ steps.image-tag.outputs.name }}
+          platforms: linux/arm64
+          oci: true
+          containerfiles: |
+            ./Dockerfile
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ steps.vars.outputs.supabase_anon_key }}
+            SUPABASE_URL=${{ steps.vars.outputs.supabase_url }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ steps.vars.outputs.public_supabase_url }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ steps.vars.outputs.supabase_service_role_key }}
+            NEXT_PUBLIC_SITE_URL=${{ steps.vars.outputs.site_url }}
+            GOOGLE_CLIENT_ID=${{ steps.vars.outputs.google_client_id }}
+            GOOGLE_CLIENT_SECRET=${{ steps.vars.outputs.google_client_secret }}
+            NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL=${{ steps.vars.outputs.dev_supabase_redirect_url }}
+
+      - name: Push Image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: efficiency-app
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ghcr.io/useefficiency
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+  Deploying:
+    needs: build
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Image Tag
+        id: image-tag
+        shell: bash
+        run: |
+          case "${{ github.ref }}" in
+            "refs/heads/main")
+              echo "name=prod" >> $GITHUB_OUTPUT
+            ;;
+            "refs/heads/dev-preview-branch")
+              echo "name=dev" >> $GITHUB_OUTPUT
+            ;;
+          esac
+
+      - name: Domain Name
+        id: domain-name
+        shell: bash
+        run: |
+          case "${{ github.ref }}" in
+            "refs/heads/main")
+              echo "url=app.useefficiency.com" >> $GITHUB_OUTPUT
+            ;;
+            "refs/heads/dev-preview-branch")
+              echo "url=dev.useefficiency.com" >> $GITHUB_OUTPUT
+            ;;
+          esac
+
+      - name: Vars
+        id: vars
+        shell: bash
+        run: |
+          case "${{ github.ref }}" in
+            "refs/heads/main")
+              echo "supabase_anon_key=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> $GITHUB_OUTPUT
+              echo "supabase_url=${{ secrets.SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "public_supabase_url=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "supabase_service_role_key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_OUTPUT
+              echo "google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" >> $GITHUB_OUTPUT
+              echo "google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
+              echo "dev_supabase_redirect_url=${{ secrets.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL }}" >> $GITHUB_OUTPUT
+              echo "site_url=${{ secrets.NEXT_PUBLIC_SITE_URL }}" >> $GITHUB_OUTPUT
+             ;;
+            "refs/heads/dev-preview-branch")
+              echo "supabase_anon_key=${{ secrets.DEV_NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> $GITHUB_OUTPUT
+              echo "supabase_url=${{ secrets.DEV_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "public_supabase_url=${{ secrets.DEV_NEXT_PUBLIC_SUPABASE_URL }}" >> $GITHUB_OUTPUT
+              echo "supabase_service_role_key=${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_OUTPUT
+              echo "google_client_id=${{ secrets.DEV_GOOGLE_CLIENT_ID }}" >> $GITHUB_OUTPUT
+              echo "google_client_secret=${{ secrets.DEV_GOOGLE_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
+              echo "dev_supabase_redirect_url=${{ secrets.DEV_NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL }}" >> $GITHUB_OUTPUT
+              echo "site_url=${{ secrets.DEV_NEXT_PUBLIC_SITE_URL }}" >> $GITHUB_OUTPUT
+            ;;
+          esac
+
+      - name: Run Ansible playbook
+        uses: dawidd6/action-ansible-playbook@v3
+        with:
+          playbook: deploy.yml
+          directory: ${{ vars.GITHUB_WORKSPACE }}
+          key: ${{ secrets.ANSIBLE_SSH }}
+          inventory: |
+            llmserver:
+              hosts:
+                vars:
+                  ansible_host: "${{ secrets.ANSIBLE_HOST }}"
+                  ansible_port: "${{ secrets.ANSIBLE_PORT }}"
+                  ansible_user: "${{ secrets.ANSIBLE_USERNAME }}"
+                  image_tag: "${{ steps.image-tag.outputs.name }}"
+                  supabase_anon_key: "${{ steps.vars.outputs.supabase_anon_key }}"
+                  supabase_url: "${{ steps.vars.outputs.supabase_url }}"
+                  public_supabase_url: "${{ steps.vars.outputs.public_supabase_url }}"
+                  supabase_service_role_key: "${{ steps.vars.outputs.supabase_service_role_key }}"
+                  site_url: "${{ steps.vars.outputs.site_url }}"
+                  google_client_id: "${{ steps.vars.outputs.google_client_id }}"
+                  google_client_secret: "${{ steps.vars.outputs.google_client_secret }}"
+                  dev_supabase_redirect_url: "${{ steps.vars.outputs.dev_supabase_redirect_url }}"
+                  domain_name: "${{ steps.domain-name.outputs.url }}"

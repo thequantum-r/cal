@@ -1,0 +1,504 @@
+{
+  "performance_audit": {
+    "project": "Backup Efficiency",
+    "tech_stack": {
+      "framework": "Next.js 15.5.0",
+      "ui_library": "React 19.1.1",
+      "styling": "Tailwind CSS",
+      "backend": "Supabase",
+      "build_tool": "Next.js App Router"
+    },
+    "current_issues": {
+      "build_size_mb": 643,
+      "node_modules_size_mb": 1100,
+      "memoization_instances": 13,
+      "total_fetch_calls": 104,
+      "images_optimized": false,
+      "virtualization_tables": false
+    },
+    "quick_wins": [
+      {
+        "rank": 1,
+        "title": "Enable Image Optimization",
+        "file": "next.config.mjs",
+        "effort_minutes": 15,
+        "impact_percent": 60,
+        "description": "Remove unoptimized: true to enable automatic image compression"
+      },
+      {
+        "rank": 2,
+        "title": "Fix TypeScript Errors",
+        "file": "next.config.mjs",
+        "effort_minutes": 10,
+        "impact_percent": 15,
+        "description": "Set typescript: { strictNullChecks: true } instead of ignoring errors"
+      },
+      {
+        "rank": 3,
+        "title": "Add Skeleton Loaders",
+        "file": "components/DocumentsTable.jsx",
+        "effort_minutes": 45,
+        "impact_percent": 30,
+        "description": "Wrap components with Suspense + skeleton UI for perceived performance"
+      },
+      {
+        "rank": 4,
+        "title": "Memoize AuthContext",
+        "file": "contexts/AuthContext.jsx",
+        "effort_minutes": 30,
+        "impact_percent": 25,
+        "description": "Wrap context value with useMemo to prevent unnecessary re-renders"
+      },
+      {
+        "rank": 5,
+        "title": "Optimize SVGs",
+        "file": "public/*.svg",
+        "effort_minutes": 20,
+        "impact_percent": 40,
+        "description": "Run through SVGO to remove metadata and optimize paths"
+      }
+    ],
+    "optimizations": [
+      {
+        "id": "1.1",
+        "priority": "CRITICAL",
+        "category": "Static Asset Optimization",
+        "title": "Enable Next.js Image Optimization",
+        "description": "Remove unoptimized: true to enable automatic image compression, WebP conversion, and responsive sizing",
+        "current_state": "Images served unoptimized, wasting 50-70% of bandwidth",
+        "expected_impact": "HIGH - 50-70% image payload reduction",
+        "impact_score": 95,
+        "effort_hours": 0.25,
+        "file_location": "next.config.mjs:10-12",
+        "affected_files": [
+          "next.config.mjs",
+          "app/layout.jsx",
+          "components/**/*.jsx"
+        ],
+        "implementation_steps": [
+          "Remove 'unoptimized: true' from next.config.mjs",
+          "Replace all <img> tags with <Image> from next/image",
+          "Add width/height attributes to Image components",
+          "Add priority prop to above-fold images"
+        ],
+        "tools_libraries": ["next/image"],
+        "metrics": {
+          "bundle_reduction_percent": 60,
+          "load_time_reduction_ms": 300
+        }
+      },
+      {
+        "id": "1.2",
+        "priority": "CRITICAL",
+        "category": "Bundle Size / Code Splitting",
+        "title": "Implement Route-Level Code Splitting",
+        "description": "Lazy load heavy components (Recharts, modals, forms) to reduce initial JS bundle",
+        "current_state": "Monolithic bundle loaded on every page, 40-60% unused code per route",
+        "expected_impact": "HIGH - 40-60% initial JS reduction",
+        "impact_score": 90,
+        "effort_hours": 3,
+        "file_location": "app/**, components/**",
+        "affected_files": [
+          "components/DocumentsTable.jsx",
+          "components/TransactionsTable.jsx",
+          "app/api/issuers/*/route.ts",
+          "app/shareholder/**"
+        ],
+        "implementation_steps": [
+          "Identify heavy components (Recharts, react-select, forms)",
+          "Wrap with dynamic() from next/dynamic",
+          "Add loading/error boundaries",
+          "Create skeleton loaders for Suspense fallbacks"
+        ],
+        "tools_libraries": ["next/dynamic", "React.lazy", "Suspense"],
+        "components_to_split": [
+          "Recharts (2.15.0) - 64 uses",
+          "react-select (5.10.2)",
+          "xlsx (0.18.5) - Excel export",
+          "Large modals/drawers"
+        ],
+        "metrics": {
+          "bundle_reduction_percent": 50,
+          "initial_load_time_reduction_ms": 800
+        }
+      },
+      {
+        "id": "1.3",
+        "priority": "CRITICAL",
+        "category": "Network & Data Layer",
+        "title": "Implement API Request Deduplication & Caching",
+        "description": "Add SWR or React Query to deduplicate identical simultaneous requests and cache responses",
+        "current_state": "Multiple identical API calls on mount, no caching, waterfall requests",
+        "expected_impact": "HIGH - 40-70% fewer requests",
+        "impact_score": 85,
+        "effort_hours": 4,
+        "file_location": "components/DocumentsTable.jsx, components/TransactionsTable.jsx, contexts/AuthContext.jsx",
+        "affected_files": [
+          "components/**/*.jsx",
+          "contexts/AuthContext.jsx"
+        ],
+        "implementation_steps": [
+          "Install SWR or TanStack Query",
+          "Wrap fetch calls in useSWR or useQuery",
+          "Configure cache duration (60s for most data)",
+          "Add revalidation on focus/window visibility"
+        ],
+        "tools_libraries": ["swr", "@tanstack/react-query"],
+        "metrics": {
+          "request_reduction_percent": 55,
+          "response_time_improvement_ms": 400
+        }
+      },
+      {
+        "id": "1.4",
+        "priority": "CRITICAL",
+        "category": "Perceived Performance",
+        "title": "Add Suspense Boundaries with Skeleton Loaders",
+        "description": "Replace generic spinners with skeleton screens to improve perceived load time",
+        "current_state": "Basic spinner shown while loading, feels slow",
+        "expected_impact": "HIGH - 30-50% perceived performance improvement",
+        "impact_score": 80,
+        "effort_hours": 2.5,
+        "file_location": "app/page.jsx, app/layout.jsx, components/DocumentsTable.jsx",
+        "affected_files": [
+          "components/**/*.jsx",
+          "app/**/*.jsx"
+        ],
+        "implementation_steps": [
+          "Create reusable Skeleton component",
+          "Wrap lazy components with Suspense",
+          "Add skeleton fallback UI",
+          "Use CSS animations for shimmer effect"
+        ],
+        "tools_libraries": ["tailwindcss-animate"],
+        "metrics": {
+          "perceived_load_improvement_percent": 40,
+          "ux_score_improvement": 25
+        }
+      },
+      {
+        "id": "1.5",
+        "priority": "CRITICAL",
+        "category": "Build Optimization",
+        "title": "Fix Next.js Config - Enable Build Optimizations",
+        "description": "Stop ignoring TypeScript/ESLint errors, enable image optimization, add optimizePackageImports",
+        "current_state": "Errors masked, no tree-shaking for Radix UI, image optimization disabled",
+        "expected_impact": "MEDIUM-HIGH - Better builds, reduced bundle",
+        "impact_score": 75,
+        "effort_hours": 0.5,
+        "file_location": "next.config.mjs",
+        "affected_files": ["next.config.mjs"],
+        "implementation_steps": [
+          "Remove eslint: { ignoreDuringBuilds: true }",
+          "Remove typescript: { ignoreBuildErrors: true }",
+          "Add experimental: { optimizePackageImports: [...] }",
+          "Configure image formats for AVIF/WebP"
+        ],
+        "tools_libraries": ["Next.js 15.5.0"],
+        "metrics": {
+          "bundle_reduction_percent": 15,
+          "build_time_reduction_percent": 20
+        }
+      },
+      {
+        "id": "2.1",
+        "priority": "HIGH",
+        "category": "Rendering & UI Optimization",
+        "title": "Virtualize Large Tables",
+        "description": "Replace standard tables with windowed/virtualized rendering for 10,000+ row performance",
+        "current_state": "DocumentsTable and TransactionsTable render all rows, poor scroll performance with 100+ rows",
+        "expected_impact": "HIGH - 90% DOM reduction, instant rendering",
+        "impact_score": 85,
+        "effort_hours": 3.5,
+        "file_location": "components/DocumentsTable.jsx:48-87, components/TransactionsTable.jsx:32-71",
+        "affected_files": [
+          "components/DocumentsTable.jsx",
+          "components/TransactionsTable.jsx"
+        ],
+        "implementation_steps": [
+          "Install react-window or TanStack Table",
+          "Replace table rows with FixedSizeList or virtualized rows",
+          "Add column headers outside scrollable area",
+          "Implement row height calculation"
+        ],
+        "tools_libraries": ["react-window", "@tanstack/react-table"],
+        "metrics": {
+          "dom_reduction_percent": 95,
+          "scroll_frame_rate_improvement": 60
+        }
+      },
+      {
+        "id": "2.2",
+        "priority": "HIGH",
+        "category": "Framework-level Optimization",
+        "title": "Optimize AuthContext Re-renders",
+        "description": "Split context into multiple contexts, memoize value, add useCallback to methods",
+        "current_state": "All consumers re-render when any auth state changes, 30-50% unnecessary re-renders",
+        "expected_impact": "MEDIUM-HIGH - 30-50% re-render reduction",
+        "impact_score": 70,
+        "effort_hours": 2.5,
+        "file_location": "contexts/AuthContext.jsx",
+        "affected_files": ["contexts/AuthContext.jsx"],
+        "implementation_steps": [
+          "Split into 3 contexts: UserContext, RoleContext, IssuerContext",
+          "Wrap context value with useMemo",
+          "Wrap methods with useCallback",
+          "Update all context consumers to use specific context"
+        ],
+        "tools_libraries": ["React.useMemo", "React.useCallback"],
+        "metrics": {
+          "re_render_reduction_percent": 40,
+          "interaction_latency_reduction_ms": 150
+        }
+      },
+      {
+        "id": "2.3",
+        "priority": "HIGH",
+        "category": "Bundle Size Reduction",
+        "title": "Add Lazy Load Radix UI Components",
+        "description": "Use optimizePackageImports to tree-shake unused Radix UI primitives",
+        "current_state": "All 16+ Radix UI components bundled regardless of usage",
+        "expected_impact": "MEDIUM-HIGH - 15-25% initial JS reduction",
+        "impact_score": 65,
+        "effort_hours": 1.5,
+        "file_location": "next.config.mjs, component files",
+        "affected_files": ["next.config.mjs", "components/ui/**"],
+        "implementation_steps": [
+          "Add to next.config.mjs experimental.optimizePackageImports",
+          "Keep only used Radix imports",
+          "Use named imports instead of default imports",
+          "Verify tree-shaking with bundle analyzer"
+        ],
+        "tools_libraries": ["Next.js 15.5.0 experimental flag"],
+        "metrics": {
+          "bundle_reduction_percent": 20,
+          "initial_load_time_reduction_ms": 250
+        }
+      },
+      {
+        "id": "2.4",
+        "priority": "HIGH",
+        "category": "Network & Perceived Performance",
+        "title": "Implement Smart Prefetching",
+        "description": "Prefetch critical routes on hover/focus to improve perceived navigation speed",
+        "current_state": "No prefetching strategy, navigation feels slow",
+        "expected_impact": "MEDIUM - 100-300ms faster perceived navigation",
+        "impact_score": 60,
+        "effort_hours": 2,
+        "file_location": "components/navigation",
+        "affected_files": ["components/**"],
+        "implementation_steps": [
+          "Identify critical routes (issuer, shareholder-home, issuers)",
+          "Add prefetch on link hover using useRouter.prefetch()",
+          "Alternatively use Link component prefetch prop",
+          "Monitor prefetch performance in DevTools"
+        ],
+        "tools_libraries": ["next/link", "next/router prefetch"],
+        "metrics": {
+          "perceived_nav_speed_improvement_ms": 200,
+          "successful_prefetch_percent": 70
+        }
+      },
+      {
+        "id": "2.5",
+        "priority": "HIGH",
+        "category": "Static Asset Optimization",
+        "title": "Optimize Public SVGs",
+        "description": "Run SVGs through SVGO to remove metadata, comments, and optimize paths",
+        "current_state": "efficiency_logo.svg (150KB), favicon.svg (148KB) contain unnecessary metadata",
+        "expected_impact": "MEDIUM - 30-50% SVG size reduction",
+        "impact_score": 65,
+        "effort_hours": 1,
+        "file_location": "public/*.svg",
+        "affected_files": ["public/efficiency_logo.svg", "public/favicon.svg"],
+        "implementation_steps": [
+          "Install SVGO: npm install -D svgo",
+          "Run: svgo public/*.svg --multipass",
+          "Consider inlining critical SVGs",
+          "Create SVG sprite for repeated icons"
+        ],
+        "tools_libraries": ["SVGO"],
+        "metrics": {
+          "svg_size_reduction_percent": 40,
+          "asset_load_time_reduction_ms": 50
+        }
+      },
+      {
+        "id": "3.1",
+        "priority": "MEDIUM",
+        "category": "Network Layer",
+        "title": "Add Request Batching for API Calls",
+        "description": "Batch multiple API calls into single request to reduce network overhead",
+        "current_state": "Individual API calls for each resource type, N+1 query problem",
+        "expected_impact": "MEDIUM - 20-40% fewer API calls",
+        "impact_score": 55,
+        "effort_hours": 3.5,
+        "file_location": "app/api/**",
+        "affected_files": [
+          "app/api/shareholders/route.ts",
+          "app/api/documents/route.ts",
+          "app/api/transactions/route.ts"
+        ],
+        "implementation_steps": [
+          "Create batch API endpoint",
+          "Modify components to call batch endpoint",
+          "Return multiple resource types in single response",
+          "Handle partial failures gracefully"
+        ],
+        "tools_libraries": ["Supabase batch API"],
+        "metrics": {
+          "api_call_reduction_percent": 30,
+          "network_request_time_reduction_ms": 200
+        }
+      },
+      {
+        "id": "3.2",
+        "priority": "MEDIUM",
+        "category": "Network & Rendering",
+        "title": "Add Pagination to Large Data Sets",
+        "description": "Implement pagination (default 50 rows) with cursor-based or offset navigation",
+        "current_state": "No pagination, all data loaded at once, potential memory/performance issues",
+        "expected_impact": "MEDIUM - 50-70% faster initial load",
+        "impact_score": 60,
+        "effort_hours": 2.5,
+        "file_location": "components/DocumentsTable.jsx, components/TransactionsTable.jsx",
+        "affected_files": [
+          "components/DocumentsTable.jsx",
+          "components/TransactionsTable.jsx"
+        ],
+        "implementation_steps": [
+          "Add limit/offset parameters to API endpoints",
+          "Implement pagination controls in tables",
+          "Add infinite scroll or page buttons",
+          "Manage pagination state in component"
+        ],
+        "tools_libraries": ["TanStack Table"],
+        "metrics": {
+          "initial_load_time_reduction_percent": 60,
+          "memory_usage_reduction_percent": 40
+        }
+      },
+      {
+        "id": "3.3",
+        "priority": "MEDIUM",
+        "category": "Network Layer",
+        "title": "Implement API Response Compression",
+        "description": "Enable gzip/brotli compression for all API responses",
+        "current_state": "No explicit compression, full payload transmitted",
+        "expected_impact": "MEDIUM - 60-80% smaller payloads",
+        "impact_score": 50,
+        "effort_hours": 1.5,
+        "file_location": "app/api/**, middleware.js",
+        "affected_files": ["middleware.js", "app/api/**"],
+        "implementation_steps": [
+          "Add compression middleware",
+          "Set Content-Encoding header",
+          "Test with curl --compressed",
+          "Verify browser support"
+        ],
+        "tools_libraries": ["compression middleware"],
+        "metrics": {
+          "payload_reduction_percent": 70,
+          "transfer_time_reduction_percent": 60
+        }
+      },
+      {
+        "id": "3.4",
+        "priority": "MEDIUM",
+        "category": "Rendering Optimization",
+        "title": "Add Component Memoization",
+        "description": "Wrap expensive components with React.memo, use useCallback/useMemo strategically",
+        "current_state": "Only 13 memoization instances found, 20-40% unnecessary re-renders",
+        "expected_impact": "MEDIUM - 20-40% re-render reduction",
+        "impact_score": 55,
+        "effort_hours": 3.5,
+        "file_location": "components/**",
+        "affected_files": ["components/**/*.jsx"],
+        "implementation_steps": [
+          "Identify frequently re-rendering components with React DevTools Profiler",
+          "Wrap table rows with React.memo",
+          "Use useCallback for event handlers",
+          "Use useMemo for expensive calculations",
+          "Add prop comparison for memo"
+        ],
+        "tools_libraries": ["React.memo", "useCallback", "useMemo"],
+        "metrics": {
+          "re_render_reduction_percent": 30,
+          "interaction_latency_improvement_ms": 100
+        }
+      },
+      {
+        "id": "3.5",
+        "priority": "MEDIUM",
+        "category": "CSS Bundle Optimization",
+        "title": "Optimize Tailwind CSS Build",
+        "description": "Tree-shake unused colors, animations, and utilities from Tailwind build",
+        "current_state": "Broad content paths, unused colors/animations in CSS bundle",
+        "expected_impact": "MEDIUM - 40-60% CSS reduction",
+        "impact_score": 45,
+        "effort_hours": 1.5,
+        "file_location": "tailwind.config.ts",
+        "affected_files": ["tailwind.config.ts"],
+        "implementation_steps": [
+          "Remove unused color palettes from theme.extend",
+          "Narrow content paths from **/* to specific dirs",
+          "Remove unused animations",
+          "Use PurgeCSS in production build"
+        ],
+        "tools_libraries": ["Tailwind CSS"],
+        "metrics": {
+          "css_size_reduction_percent": 50,
+          "style_load_time_reduction_ms": 30
+        }
+      }
+    ],
+    "implementation_roadmap": {
+      "phase_1": {
+        "name": "Quick Wins & Critical Items",
+        "duration_weeks": 1,
+        "items": ["1.1", "1.5", "1.4", "2.5", "2.2"],
+        "total_effort_hours": 8.5,
+        "expected_impact_percent": 35
+      },
+      "phase_2": {
+        "name": "Network & Bundle Optimization",
+        "duration_weeks": 1,
+        "items": ["1.2", "1.3", "2.1", "3.1"],
+        "total_effort_hours": 14,
+        "expected_impact_percent": 25
+      },
+      "phase_3": {
+        "name": "Advanced Optimizations",
+        "duration_weeks": 1,
+        "items": ["2.2", "2.4", "3.2", "3.3"],
+        "total_effort_hours": 8.5,
+        "expected_impact_percent": 15
+      },
+      "phase_4": {
+        "name": "Monitoring & Polish",
+        "duration_weeks": 1,
+        "items": ["3.4", "3.5"],
+        "total_effort_hours": 5,
+        "expected_impact_percent": 10
+      }
+    },
+    "estimated_impact": {
+      "conservative_estimate": {
+        "page_load_speed_improvement_percent": 40,
+        "first_paint_improvement_percent": 35,
+        "js_bundle_reduction_percent": 40,
+        "image_payload_reduction_percent": 60,
+        "api_requests_reduction_percent": 40,
+        "tti_improvement_percent": 35
+      },
+      "aggressive_estimate": {
+        "page_load_speed_improvement_percent": 70,
+        "first_paint_improvement_percent": 60,
+        "js_bundle_reduction_percent": 60,
+        "image_payload_reduction_percent": 70,
+        "api_requests_reduction_percent": 55,
+        "tti_improvement_percent": 65
+      }
+    }
+  }
+}
